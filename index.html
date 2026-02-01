@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AI Camera App</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: white;
+    text-align: center;
+}
+
+.app {
+    max-width: 420px;
+    margin: auto;
+    padding: 16px;
+}
+
+h1 {
+    font-size: 22px;
+    margin-bottom: 12px;
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    font-size: 18px;
+    border: none;
+    border-radius: 12px;
+    background: #ff3b3b;
+    color: white;
+    margin-bottom: 16px;
+}
+
+#webcam-container canvas {
+    width: 100% !important;
+    height: auto !important;
+    border-radius: 12px;
+}
+
+#label-container div {
+    background: #222;
+    margin-top: 8px;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 16px;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+    <h1>AI Camera Detection</h1>
+    <button onclick="init()">เริ่มสแกน</button>
+    <div id="webcam-container"></div>
+    <div id="label-container"></div>
+</div>
+
+<script>
+const URL = "https://teachablemachine.withgoogle.com/models/Say90PtYQ/";
+
+let model, webcam, labelContainer, maxPredictions;
+
+async function init() {
+    const modelURL = URL + "model.json";
+    const metadataURL = URL + "metadata.json";
+
+    model = await tmImage.load(modelURL, metadataURL);
+    maxPredictions = model.getTotalClasses();
+
+    const flip = true;
+    webcam = new tmImage.Webcam(300, 300, flip);
+    await webcam.setup();
+    await webcam.play();
+    window.requestAnimationFrame(loop);
+
+    document.getElementById("webcam-container").innerHTML = "";
+    document.getElementById("webcam-container").appendChild(webcam.canvas);
+
+    labelContainer = document.getElementById("label-container");
+    labelContainer.innerHTML = "";
+    for (let i = 0; i < maxPredictions; i++) {
+        labelContainer.appendChild(document.createElement("div"));
+    }
+}
+
+async function loop() {
+    webcam.update();
+    await predict();
+    window.requestAnimationFrame(loop);
+}
+
+async function predict() {
+    const prediction = await model.predict(webcam.canvas);
+    for (let i = 0; i < maxPredictions; i++) {
+        const text =
+            prediction[i].className + " : " +
+            (prediction[i].probability * 100).toFixed(0) + "%";
+        labelContainer.childNodes[i].innerHTML = text;
+    }
+}
+</script>
+</body>
+</html>
